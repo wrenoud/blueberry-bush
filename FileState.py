@@ -5,9 +5,10 @@ class FileState(object):
     STATE_NORMAL = 0x00
     STATE_MODIFIED = 0x01
     STATE_DELETED = 0x03
-    STATE_MOVED = 0x04
+    # STATE_MOVED = 0x04
+    STATE_NEW = 0x05
    
-    """Holds stat information for a file"""
+    """Holds state information for a file"""
     __slots__ = ('state','key','modified','hash','size')
         
     def __init__(self, key='', modified=0, hash=None, size=0):
@@ -16,6 +17,9 @@ class FileState(object):
         self.modified = modified
         self.hash = hash
         self.size = size
+
+    def clear_state(self):
+        self.state = self.STATE_NORMAL
         
     def check_exists(self): pass
     def check_modified(self): pass
@@ -39,6 +43,13 @@ class FileState(object):
 class FileStateLocal(FileState):
     __slots__ = ('local_dir','dropped')
 
+    @staticmethod
+    def as_key(local_dir, filepath):
+        _clean = os.path.abspath(filepath) # make sure we have the real path
+        key = os.path.relpath(_clean, local_dir)
+        
+        return key
+        
     def __init__(self, local_dir, filepath):
         super(FileStateLocal, self).__init__()
         self.local_dir = local_dir
@@ -51,8 +62,7 @@ class FileStateLocal(FileState):
     
     @local_path.setter
     def local_path(self,filepath):
-        _clean = os.path.abspath(filepath) # make sure we have the real path
-        self.key = os.path.relpath(_clean, self.local_dir)
+        self.key = FileStateLocal.as_key(self.local_dir, filepath)
         
     def check_exists(self):
         if not os.path.exists(self.local_path):
